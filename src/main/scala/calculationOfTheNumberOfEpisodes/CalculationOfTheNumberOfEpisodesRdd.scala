@@ -2,6 +2,7 @@ package calculationOfTheNumberOfEpisodes
 
 import org.apache.spark.rdd.RDD
 import provider.{DefaultSparkContextProvider, SparkContextProviderComponent}
+import scala.util.Try
 
 object CalculationOfTheNumberOfEpisodesRddApp extends App
   with SparkContextProviderComponent
@@ -9,7 +10,7 @@ object CalculationOfTheNumberOfEpisodesRddApp extends App
 
   override def sparkContextProvider = new DefaultSparkContextProvider("CalculationOfTheNumberOfEpisodesRddApp")
 
-  wordCount("tv_shows_data.csv")
+  genreCount("tv_shows_data.csv")
 }
 
 trait CalculationOfTheNumberOfEpisodesRdd {
@@ -17,19 +18,19 @@ trait CalculationOfTheNumberOfEpisodesRdd {
 
   private val sparkContext = sparkContextProvider.sparkContext
 
-  def wordCount(path: String): Unit = {
+  def genreCount(path: String): Unit = {
     val textFile: RDD[String] = sparkContext.textFile(path)
 
-
-    val counts: RDD[(String, Int)] = textFile//.flatMap(line => line.split(","))
-      .filter(_.nonEmpty)
-      .map(word => (word, 1))
+    val textFile1 = textFile
+      .filter(_!= "Title,Genre,Premiere,No_of_Seasons,No_of_Episodes")
+      .map(_.split(","))
+      .map(elem => (elem(1),Try(elem(5).toInt).getOrElse(0)))
       .reduceByKey(_ + _)
 
-    counts.sortBy({ case (word, count) => count }, ascending = false)
+    textFile1.sortBy({ case (genre, count) => count }, ascending = false)
       .take(10)
-      .foreach { case (word, count) =>
-        println(s"========== '$word' : $count")
+      .foreach { case (genre, count) =>
+        println(s"========== '$genre' : $count")
       }
   }
 
